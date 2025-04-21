@@ -1,8 +1,8 @@
 # 🦕 YAMLotops
 
-![YAMLotops the Mascot](./YAMLotops.png)
+![YAMLotops the Mascot](./yamlotops.png)
 
-> **"Surprisingly functional for a pile of YAML and fossil dust."**
+> **"If it ain’t broken, it’s because no one’s looked too closely."**
 
 **YAMLotops** is a personal Infrastructure-as-Code project designed to manage a home network and server setup with minimal manual intervention. It emphasizes:
 
