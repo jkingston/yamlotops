@@ -1,0 +1,8 @@
+---
+- name: Generate cloud-config for servers
+  hosts: dns
+  gather_facts: yes
+  become: yes
+  roles:
+    - tailscale
+    - install_dns_server

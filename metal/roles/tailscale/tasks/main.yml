@@ -1,0 +1,28 @@
+---
+- name: Check if Tailscale is already installed
+  ansible.builtin.shell:
+    cmd: tailscale version
+  register: tailscale_installed
+  ignore_errors: true
+
+- debug:
+    msg: "Tailscale is already installed, skipping installation."
+  when: tailscale_installed.rc == 0
+
+- name: Install Tailscale
+  ansible.builtin.shell:
+    cmd: |
+      curl -fsSL https://tailscale.com/install.sh | sh
+  when: tailscale_installed.rc != 0
+
+# https://tailscale.com/kb/1320/performance-best-practices?q=transport+layer+offload#linux-optimizations-for-subnet-routers-and-exit-nodes
+- name: Configure transport layer offloads for improved subnet router UDP performance
+  ansible.builtin.shell:
+    cmd: |
+      NETDEV=$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")
+      ethtool -K $NETDEV rx-udp-gro-forwarding on rx-gro-list off
+
+- name: Enable Tailscale
+  ansible.builtin.shell:
+    cmd: |
+      tailscale up --auth-key={{ tailscale_auth_key }} --ssh --advertise-routes=192.168.1.0/24

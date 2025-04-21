@@ -1,0 +1,9 @@
+---
+- name: Copy adguardhome service config
+  ansible.builtin.copy:
+    src: adguardhome/
+    dest: /services/adguardhome
+
+- name: Create and deploy adguardhome docker compose services
+  community.docker.docker_compose_v2:
+    project_src: /services/adguardhome
