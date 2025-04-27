@@ -1,9 +1,47 @@
 services:
-    adguardhome:
-        container_name: adguardhome
-        restart: unless-stopped
-        volumes:
-            - ./work:/opt/adguardhome/work
-            - ./conf:/opt/adguardhome/conf
-        network_mode: host
-        image: adguard/adguardhome
+  adguardhome:
+    container_name: adguardhome
+    restart: unless-stopped
+    volumes:
+        - ./work:/opt/adguardhome/work
+        - ./conf:/opt/adguardhome/conf
+    networks:
+      - caddy
+    ports:
+      - 3000:3000
+      - 53:53
+      - 53:53/udp
+      - 853:853
+      - 67:67/udp
+      - 68:68/udp
+    labels:
+      caddy: dns1.quiet.ooo
+      caddy.reverse_proxy: "{{upstreams 3000}}"
+    image: adguard/adguardhome
+
+  caddy:
+    image: jkingston/caddy-with-plugins:latest
+    container_name: caddy
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      - CADDY_INGRESS_NETWORKS=caddy
+      - CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
+    env_file:
+      - caddy.env
+    networks:
+      - caddy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./caddy_conf:/etc/caddy
+      - caddy_data:/data
+    restart: unless-stopped
+
+networks:
+  caddy:
+    name: caddy
+    driver: bridge
+
+volumes:
+  caddy_data: {}

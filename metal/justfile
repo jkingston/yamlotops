@@ -1,6 +1,6 @@
 #!/usr/bin/env just --justfile
 
 ansible-playbook *args:
-  uvx --from=ansible.core ansible-playbook -i inventory/hosts --extra-vars "@vars.secrets.yml" {{args}}
+  uvx --from=ansible.core ansible-playbook --extra-vars "@vars.secrets.yml" {{args}}
 
 setup_dns_server: (ansible-playbook "setup_dns_server.yml")

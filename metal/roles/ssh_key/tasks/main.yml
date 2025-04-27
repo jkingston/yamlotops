@@ -1,0 +1,12 @@
+---
+# Generate an SSH key on the control node if not already existing.
+- name: Ensure SSH key exists on control node for this server
+  openssh_keypair:
+    path: "./keys/astro_id_rsa"
+    type: rsa
+    size: 4096
+    force: no
+  register: keypair_result
+  delegate_to: localhost
+  run_once: true
+  become: false

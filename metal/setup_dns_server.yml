@@ -4,5 +4,6 @@
   gather_facts: yes
   become: yes
   roles:
+    - ssh_key
     - tailscale
     - install_dns_server
