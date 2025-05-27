@@ -4,3 +4,6 @@ ansible-playbook *args:
   uvx --from=ansible.core ansible-playbook --extra-vars "@vars.secrets.yml" {{args}}
 
 setup_dns_server: (ansible-playbook "setup_dns_server.yml")
+
+ssh host *args:
+  ssh -i keys/astro_id_rsa -o StrictHostKeyChecking=no astro@{{host}} {{args}}
