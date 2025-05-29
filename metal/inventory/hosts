@@ -1,0 +1,18 @@
+[dns]
+dns1.quiet.ooo ansible_host=192.168.1.222
+
+[nebula]
+nebula01 ansible_host=192.168.1.50
+nebula02 ansible_host=192.168.1.51
+nebula03 ansible_host=192.168.1.52
+
+[nebula_managers]
+nebula01
+
+[nebula_workers]
+nebula02
+nebula03
+
+[all:vars]
+ansible_user=astro
+ansible_ssh_private_key_file=keys/astro_id_rsa

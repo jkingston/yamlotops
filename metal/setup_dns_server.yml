@@ -6,4 +6,5 @@
   roles:
     - ssh_key
     - tailscale
+    - docker
     - install_dns_server

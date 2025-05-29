@@ -1,0 +1,12 @@
+{
+    auto_https prefer_wildcard
+}
+
+*.quiet.ooo {
+    tls {
+        dns porkbun {
+            api_key {env.PORKBUN_API_KEY}
+            api_secret_key {env.PORKBUN_API_SECRET_KEY}
+        }
+    }
+}

@@ -1,0 +1,31 @@
+services:
+  caddy:
+    image: jkingston/caddy-with-plugins:latest
+    container_name: caddy
+    command: caddy docker-proxy --envfile /run/secrets/caddy_porkbun_dns_environment
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      CADDY_INGRESS_NETWORKS: caddy
+      CADDY_DOCKER_CADDYFILE_PATH: /etc/caddy/Caddyfile
+    networks:
+      - caddy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./conf:/etc/caddy
+      - caddy_data:/data
+    restart: unless-stopped
+    secrets:
+      - caddy_porkbun_dns_environment
+
+secrets:
+  caddy_porkbun_dns_environment:
+    external: true
+
+networks:
+  caddy:
+    external: true
+
+volumes:
+  caddy_data: {}
