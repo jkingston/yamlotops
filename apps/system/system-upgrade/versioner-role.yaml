@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: plan-versioner
+  namespace: system-upgrade
+rules:
+  - apiGroups: ["upgrade.cattle.io"]
+    resources: ["plans"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: versioner-role-binding
+  namespace: system-upgrade
+subjects:
+  - kind: ServiceAccount
+    name: versioner
+    namespace: system-upgrade
+roleRef:
+  kind: Role
+  name: plan-versioner
+  apiGroup: rbac.authorization.k8s.io

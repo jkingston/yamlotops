@@ -1,0 +1,21 @@
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: k3s-server-upgrade
+  namespace: system-upgrade
+spec:
+  channel: https://update.k3s.io/v1-release/channels/latest
+  concurrency: 1
+  cordon: true
+  drain:
+    timeout: 900000000000 # why did they make this nanoseconds
+    deleteLocalData: true
+    force: true
+  nodeSelector:
+    matchExpressions:
+      - key: node-role.kubernetes.io/control-plane
+        operator: In
+        values: ["true"]
+  serviceAccountName: system-upgrade
+  upgrade:
+    image: rancher/k3s-upgrade
