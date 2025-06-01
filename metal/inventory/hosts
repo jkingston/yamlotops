@@ -1,18 +1,22 @@
+[all:vars]
+ansible_user=astro
+ansible_ssh_private_key_file=keys/astro_id_rsa
+
 [dns]
 dns1.quiet.ooo ansible_host=192.168.1.222
 
-[nebula]
+[server]
 nebula01 ansible_host=192.168.1.50
 nebula02 ansible_host=192.168.1.51
 nebula03 ansible_host=192.168.1.52
 
-[nebula_managers]
-nebula01
+[agent]
 
-[nebula_workers]
-nebula02
-nebula03
+[k3s_cluster:children]
+server
+agent
 
-[all:vars]
-ansible_user=astro
-ansible_ssh_private_key_file=keys/astro_id_rsa
+[k3s_cluster:vars]
+extra_server_args=--disable=servicelb
+k3s_version=v1.33.1+k3s1
+api_endpoint={{ hostvars[groups['server'][0]]['ansible_host'] | default(groups['server'][0]) }}
