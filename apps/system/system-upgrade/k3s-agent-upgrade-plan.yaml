@@ -4,7 +4,7 @@ metadata:
   name: k3s-agent-upgrade
   namespace: system-upgrade
 spec:
-  channel: https://update.k3s.io/v1-release/channels/latest
+  channel: https://update.k3s.io/v1-release/channels/stable
   concurrency: 1
   cordon: true
   drain:
