@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pocket-id
+  namespace: pocket-id
+spec:
+  serviceName: pocket-id
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pocket-id
+  template:
+    metadata:
+      labels:
+        app: pocket-id
+    spec:
+      serviceAccountName: pocket-id
+      containers:
+        - name: pocket-id
+          image: ghcr.io/pocket-id/pocket-id:v0.53.0
+          envFrom:
+            - configMapRef:
+                name: pocket-id-config
+          ports:
+            - name: http
+              containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+          volumeMounts:
+            - name: data
+              mountPath: /app/backend/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: longhorn
+        resources:
+          requests:
+            storage: 8Gi
