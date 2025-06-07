@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: porkbun-key-reader
+  namespace: cert-manager
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: porkbun-key-reader
+  namespace: cert-manager
+subjects:
+  - kind: ServiceAccount
+    name: porkbun-webhook
+    namespace: cert-manager
+roleRef:
+  kind: Role
+  name: porkbun-key-reader
+  apiGroup: rbac.authorization.k8s.io

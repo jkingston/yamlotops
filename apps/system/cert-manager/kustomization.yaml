@@ -5,12 +5,16 @@ secretGenerator:
     envs:
       - .env.secret
 
+generatorOptions:
+  disableNameSuffixHash: true
+
 resources:
   - https://github.com/cert-manager/cert-manager/releases/download/v1.16.5/cert-manager.yaml
   - issuer.yaml
   - porkbun-webhook/rbac.yaml
   - extension-apiserver-authentication-reader.yaml
   - porkbun-webhook-auth-reader.yaml
+  - rbac.yaml
 
 helmGlobals:
   chartHome: porkbun-webhook/deploy
