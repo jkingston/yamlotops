@@ -17,26 +17,26 @@ spec:
       serviceAccountName: pocket-id
       containers:
         - name: pocket-id
-          image: ghcr.io/pocket-id/pocket-id:v0.53.0
+          image: ghcr.io/pocket-id/pocket-id:v1.2.0
           envFrom:
             - configMapRef:
                 name: pocket-id-config
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 1411
           livenessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: http
             initialDelaySeconds: 60
           readinessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: http
             initialDelaySeconds: 60
           volumeMounts:
             - name: data
-              mountPath: /app/backend/data
+              mountPath: /app/data
   volumeClaimTemplates:
     - metadata:
         name: data

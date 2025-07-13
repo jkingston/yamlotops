@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: calibre-web
+  namespace: calibre-web
+spec:
+  serviceName: calibre-web
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calibre-web
+  template:
+    metadata:
+      labels:
+        app: calibre-web
+    spec:
+      initContainers:
+        - name: bootstrap-library
+          image: curlimages/curl:latest # 6 MB image with just curl
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              if [ ! -f /books/metadata.db ]; then
+                echo ">> Fetching empty Calibre DB"
+                curl -fsSL -o /books/metadata.db \
+                  https://github.com/janeczku/calibre-web/raw/master/library/metadata.db
+                # match the UID/GID your main container runs with
+                chown -R 1000:1000 /books
+              else
+                echo ">> /books/metadata.db already exists — skipping"
+              fi
+          volumeMounts:
+            - name: books
+              mountPath: /books
+          # use root just for this step so chown works (optional)
+          securityContext:
+            runAsUser: 0
+      containers:
+        - name: calibre-web
+          image: lscr.io/linuxserver/calibre-web:latest
+          ports:
+            - containerPort: 8083
+          env:
+            - name: DOCKER_MODS
+              value: linuxserver/mods:universal-calibre
+            - name: OAUTHLIB_RELAX_TOKEN_SCOPE
+              value: "1"
+            - name: PGID
+              value: "1000"
+            - name: PUID
+              value: "1000"
+            - name: TZ
+              value: Europe/London
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: books
+              mountPath: /books
+  volumeClaimTemplates:
+    - metadata:
+        name: config
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: longhorn
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: books
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: longhorn
+        resources:
+          requests:
+            storage: 8Gi

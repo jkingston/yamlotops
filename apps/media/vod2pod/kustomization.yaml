@@ -1,0 +1,43 @@
+# AIzaSyD2lGUHn9XMMU9wpO0YjELQx09zWAKD3M8
+
+# kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Everything will be placed in its own namespace
+namespace: vod2pod
+
+resources:
+  - resources.yaml
+
+# Pull the official image but pin the tag here if you prefer
+images:
+  - name: madiele/vod2pod-rss # <image>
+    newName: madiele/vod2pod-rss # <image>
+    newTag: "latest"
+
+# Configuration that is safe to show in Git
+configMapGenerator:
+  - name: vod2pod-config
+    literals:
+      - TZ=Europe/London
+      - MP3_BITRATE=192
+      - TRANSCODE=true
+      - SUBFOLDER=/
+      - RUST_LOG=INFO
+      - REDIS_ADDRESS=redis
+      - REDIS_PORT=6379
+
+# Keys and tokens – populate from env or an external Secret manager
+secretGenerator:
+  - name: vod2pod-secrets
+    literals:
+      - YT_API_KEY=AIzaSyD2lGUHn9XMMU9wpO0YjELQx09zWAKD3M8
+  - name: oauth2-proxy-credentials
+    literals:
+      - OAUTH2_PROXY_CLIENT_ID=50eddfd2-64a0-4b0c-9ffb-31cfb1caf64e
+      - OAUTH2_PROXY_CLIENT_SECRET=LXzuRhCotppd0eWLBQSiFsnNbiY74dTp
+      - OAUTH2_PROXY_COOKIE_SECRET=NrU2M2T9n0e6i3Z97a+KAUXdeucyCMp99fvq4nMiARM=
+
+generatorOptions:
+  disableNameSuffixHash: true

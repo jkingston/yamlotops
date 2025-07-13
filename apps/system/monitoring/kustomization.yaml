@@ -1,0 +1,291 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+###############################################################################
+# 1)  Global namespace for every object the stack creates
+###############################################################################
+namespace: monitoring
+
+###############################################################################
+# 2)  Hand-written manifests (Namespace + Ingress)
+###############################################################################
+resources:
+  # --- Namespace ------------------------------------------------------------
+  - namespace.yaml
+
+  # --- Ingress for Grafana (Traefik + cert-manager) -------------------------
+  - grafana-ingress.yaml
+
+###############################################################################
+# 3)  Pocket-ID OAuth Secret for Grafana
+###############################################################################
+secretGenerator:
+  - name: pocketid-oauth
+    literals:
+      - client_id=bceb7d42-0b92-47a3-bd1a-a453f0004307
+      - client_secret=PoL2Na4dhIWWVTx2MRnjTVQzYh5BieXy
+    type: Opaque
+generatorOptions:
+  disableNameSuffixHash: true # keep the Secret name stable
+
+###############################################################################
+# 4)  Helm charts rendered by Kustomize
+###############################################################################
+helmCharts:
+  # ───────────────── Prometheus ─────────────────────────────────────────────
+  - name: prometheus
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 27.16.0 # latest GA (May 2025)  [oai_citation:0‡Artifact Hub](https://artifacthub.io/packages/helm/prometheus-community/prometheus?modal=values&utm_source=chatgpt.com)
+    releaseName: prometheus
+    namespace: monitoring
+    valuesInline:
+      server:
+        #### 4a) persistent data on Longhorn
+        persistentVolume:
+          enabled: true
+          storageClass: longhorn
+          size: 10Gi
+        #### 4b) scrape the two exporters without Prometheus Operator
+        extraScrapeConfigs: |
+          - job_name: 'kubernetes-node-exporter'
+            kubernetes_sd_configs:
+              - role: endpoints
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_name]
+                regex: prometheus-node-exporter
+                action: keep
+          - job_name: 'kube-state-metrics'
+            kubernetes_sd_configs:
+              - role: endpoints
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_namespace]
+                regex: kube-state-metrics;monitoring
+                action: keep
+      alertmanager:
+        persistentVolume:
+          enabled: true
+          storageClass: longhorn
+          size: 2Gi
+      prometheus-node-exporter:
+        enabled: false
+      kube-state-metrics:
+        enabled: false
+
+  # ───────────────── Grafana ────────────────────────────────────────────────
+  - name: grafana
+    repo: https://grafana.github.io/helm-charts
+    version: 9.0.0
+    releaseName: grafana
+    namespace: monitoring
+    valuesInline:
+      persistence:
+        enabled: true
+        type: pvc
+        storageClassName: longhorn
+        size: 5Gi
+      env:
+        GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+        GF_AUTH_GENERIC_OAUTH_NAME: Pocket-ID
+        GF_AUTH_GENERIC_OAUTH_SCOPES: "openid profile email groups"
+        GF_AUTH_GENERIC_OAUTH_AUTH_URL: https://auth.quiet.ooo/authorize
+        GF_AUTH_GENERIC_OAUTH_TOKEN_URL: https://auth.quiet.ooo/api/oidc/token
+        GF_AUTH_GENERIC_OAUTH_API_URL: https://auth.quiet.ooo/api/oidc/userinfo
+        GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(groups[*], 'grafana-admin') && 'Admin' || 'Viewer'"
+        GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "true"
+        GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: true
+        GF_SERVER_ROOT_URL: https://grafana.quiet.ooo
+        GF_AUTH_SIGNOUT_REDIRECT_URL: https://grafana.quiet.ooo/login
+        GF_AUTH_GENERIC_OAUTH_AUTH_STYLE: InParams
+      envValueFrom:
+        GF_AUTH_GENERIC_OAUTH_CLIENT_ID:
+          secretKeyRef:
+            name: pocketid-oauth
+            key: client_id
+        GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
+          secretKeyRef:
+            name: pocketid-oauth
+            key: client_secret
+      datasources:
+        datasources.yaml:
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              url: http://prometheus-server.monitoring.svc.cluster.local
+              access: proxy
+              isDefault: true
+              editable: false
+            - name: Loki
+              type: loki
+              url: http://loki.monitoring.svc.cluster.local:3100
+              access: proxy
+              editable: false
+              jsonData:
+                derivedFields:
+                  - name: trace_id
+                    regex: '"traceID":"([A-Za-z0-9]+)"'
+                    datasourceUid: tempo
+                    url: "${__value.raw}"
+            # Tempo traces
+            - uid: tempo
+              name: Tempo
+              type: tempo
+              url: http://tempo.monitoring.svc.cluster.local:3100
+              access: proxy
+              editable: false
+              jsonData:
+                httpMethod: GET
+                tracesToLogs:
+                  datasourceUid: Loki
+      service:
+        type: ClusterIP # Traefik ingress terminates TLS
+
+  # ───────────────────────── LOKI (single-binary) ───────────────────────────
+  - name: loki
+    repo: https://grafana.github.io/helm-charts
+    version: 6.29.0
+    releaseName: loki
+    namespace: monitoring
+    valuesInline:
+      loki:
+        commonConfig:
+          replication_factor: 1
+        schemaConfig:
+          configs:
+            - from: "2024-04-01"
+              store: tsdb
+              object_store: s3
+              schema: v13
+              index:
+                prefix: loki_index_
+                period: 24h
+        pattern_ingester:
+          enabled: true
+        limits_config:
+          allow_structured_metadata: true
+          volume_enabled: true
+        ruler:
+          enable_api: true
+        auth_enabled: false
+      minio:
+        enabled: true
+        persistence:
+          storageClass: longhorn # use Longhorn for MinIO's PVC
+          size: 10Gi
+      deploymentMode: SingleBinary
+      gateway:
+        enabled: false
+      singleBinary:
+        replicas: 1
+      # Zero out replica counts of other deployment modes
+      backend:
+        replicas: 0
+      read:
+        replicas: 0
+      write:
+        replicas: 0
+      ingester:
+        replicas: 0
+      querier:
+        replicas: 0
+      queryFrontend:
+        replicas: 0
+      queryScheduler:
+        replicas: 0
+      distributor:
+        replicas: 0
+      compactor:
+        replicas: 0
+      indexGateway:
+        replicas: 0
+      bloomCompactor:
+        replicas: 0
+      bloomGateway:
+        replicas: 0
+
+  # ───────── PROMTAIL DaemonSet – ships kube-logs → Loki ────────────────────
+  - name: promtail
+    repo: https://grafana.github.io/helm-charts
+    version: 6.16.6
+    releaseName: promtail
+    namespace: monitoring
+    valuesInline:
+      config:
+        clients:
+          - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+      extraVolumes: [] # avoid mounting host /var/log on k3s rootless nodes
+
+  # ───────────────────────── TEMPO (single-binary) ──────────────────────────
+  - name: tempo
+    repo: https://grafana.github.io/helm-charts
+    version: 1.21.1
+    releaseName: tempo
+    namespace: monitoring
+    valuesInline:
+      persistence:
+        enabled: true
+        storageClass: longhorn
+        size: 10Gi
+      tempo:
+        metricsGenerator:
+          enabled: false
+      serviceMonitor:
+        enabled: false
+
+  # ───────── ALLOY DaemonSet – ships OTLP traces → Tempo ──────────────
+  - name: alloy
+    repo: https://grafana.github.io/helm-charts
+    version: 1.0.3
+    releaseName: alloy
+    namespace: monitoring
+    valuesInline:
+      mode: daemonset
+      config: |
+        server:
+          log_level: info
+        traces:
+          configs:
+            - name: otlp-to-tempo
+              receivers:
+                otlp:
+              exporters:
+                otlp:
+                  endpoint: tempo.monitoring.svc.cluster.local:4317
+                  tls:
+                    insecure: true
+              service:
+                pipelines:
+                  traces:
+                    receivers: [otlp]
+                    exporters: [otlp]
+
+  # ───────────────── Node Exporter (cluster-wide DaemonSet) ────────────────
+  - name: prometheus-node-exporter
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 4.46.0 # latest GA (May 2025) [oai_citation:1‡Artifact Hub](https://artifacthub.io/packages/helm/prometheus-community/prometheus-node-exporter?utm_source=chatgpt.com)
+    releaseName: node-exporter
+    namespace: monitoring
+    valuesInline:
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9100"
+      serviceMonitor:
+        enabled: false # don’t create CRDs we’re not using
+
+  # ───────────────── kube-state-metrics ─────────────────────────────────────
+  - name: kube-state-metrics
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 5.33.1 # latest GA as of May 2025  [oai_citation:2‡Artifact Hub](https://artifacthub.io/packages/helm/prometheus-community/kube-state-metrics?utm_source=chatgpt.com)
+    releaseName: kube-state-metrics
+    namespace: monitoring
+    valuesInline:
+      selfMonitor:
+        enabled: false
+      prometheus:
+        monitor:
+          enabled: false # no ServiceMonitor CRDs, rely on annotations
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "8080"
