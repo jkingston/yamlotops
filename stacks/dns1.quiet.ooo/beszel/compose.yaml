@@ -1,0 +1,28 @@
+services:
+  beszel:
+    image: henrygd/beszel:latest
+    container_name: beszel
+    networks:
+      - caddy
+    restart: unless-stopped
+    volumes:
+      - ./beszel_data:/beszel_data
+      - ./beszel_socket:/beszel_socket
+
+  beszel-agent:
+    image: henrygd/beszel-agent:latest
+    container_name: beszel-agent
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./beszel_socket:/beszel_socket
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/hdd/.beszel:/extra-filesystems/hdd:ro
+    environment:
+      LISTEN: /beszel_socket/beszel.sock
+      # Do not remove quotes around the key
+      KEY: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKptR1bemb869zS0/6L0f0/ubz0NEIFlaFB99fGgneVB'
+
+networks:
+  caddy:
+    external: true

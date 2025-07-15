@@ -1,0 +1,40 @@
+{
+    auto_https prefer_wildcard
+}
+
+*.quiet.ooo {
+    tls {
+        dns porkbun {
+            api_key {env.PORKBUN_API_KEY}
+            api_secret_key {env.PORKBUN_API_SECRET_KEY}
+        }
+    }
+}
+
+vod2pod.quiet.ooo {
+    reverse_proxy 192.168.1.50
+}
+
+photos.quiet.ooo {
+    reverse_proxy 192.168.1.52
+}
+
+dns.quiet.ooo {
+    reverse_proxy 192.168.1.222:3000
+}
+
+dockge.quiet.ooo {
+    reverse_proxy http://dockge:5001
+}
+
+beszel.quiet.ooo {
+    reverse_proxy http://beszel:8090
+}
+
+auth.quiet.ooo {
+    reverse_proxy http://pocket-id:1411
+}
+
+uptime.quiet.ooo {
+    reverse_proxy http://uptime-kuma:3001
+}

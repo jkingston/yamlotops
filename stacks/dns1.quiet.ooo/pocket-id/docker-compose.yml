@@ -1,0 +1,21 @@
+services:
+  pocket-id:
+    container_name: pocket-id
+    image: ghcr.io/pocket-id/pocket-id:v1
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - "./data:/app/data"
+    networks:
+      - caddy
+    # Optional healthcheck
+    healthcheck:
+      test: [ "CMD", "/app/pocket-id", "healthcheck" ]
+      interval: 1m30s
+      timeout: 5s
+      retries: 2
+      start_period: 10s
+
+networks:
+  caddy:
+    external: true

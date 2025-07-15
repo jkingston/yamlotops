@@ -1,0 +1,10 @@
+---
+- name: Set up dns servers
+  hosts: dns
+  gather_facts: yes
+  become: yes
+  roles:
+    - ssh_key
+    - tailscale
+    - docker
+    - dockge

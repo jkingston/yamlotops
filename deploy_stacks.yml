@@ -1,0 +1,10 @@
+---
+- name: Deploy stacks
+  hosts: all
+  gather_facts: yes
+  become: yes
+  vars:
+    stacks_src_dir: "stacks/{{ inventory_hostname }}"
+    stacks_dest_dir: "/opt/stacks"
+  roles:
+    - dockge

@@ -1,0 +1,10 @@
+{
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+http://photos.quiet.ooo {
+    reverse_proxy http://192.168.1.52:2283
+}

@@ -1,0 +1,40 @@
+---
+- name: Copy dockge/
+  ansible.builtin.copy:
+    src: dockge/
+    dest: /opt/dockge
+
+- name: Create caddy docker network
+  community.docker.docker_network:
+    name: caddy
+
+- name: Find local stack directories for this host
+  ansible.builtin.find:
+    paths: "stacks/{{ inventory_hostname }}"
+    file_type: directory
+    depth: 1
+  delegate_to: localhost
+  become: false
+  register: local_stacks
+
+- name: Copy each stack if new or changed
+  ansible.builtin.copy:
+    src: "{{ item.path }}/"
+    dest: "{{ stacks_dest_dir }}/{{ item.path | basename }}/"
+    owner: root
+    group: root
+    mode: '0755'
+  loop: "{{ local_stacks.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: copy_results
+
+- name: Deploy only the stacks that were copied/updated
+  community.docker.docker_compose_v2:
+    project_src: "{{ stacks_dest_dir }}/{{ item.item.path | basename }}"
+  loop: "{{ copy_results.results }}"
+  when: item.changed
+
+- name: Start dockge
+  community.docker.docker_compose_v2:
+    project_src: /opt/dockge

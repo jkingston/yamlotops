@@ -1,0 +1,10 @@
+{
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+http://vod2pod.quiet.ooo {
+    reverse_proxy http://vod2pod:8080
+}

@@ -1,0 +1,9 @@
+---
+- name: Set up nebula cluster
+  hosts: nebula
+  gather_facts: yes
+  become: yes
+  roles:
+    - ssh_key
+    - docker
+    - dockge

@@ -1,8 +1,9 @@
 install-ansible-requirements:
-  uvx --from=ansible.core ansible-galaxy collection install git+https://github.com/k3s-io/k3s-ansible.git 
+  uvx --from=ansible.core ansible-galaxy collection install community.docker
+  uvx --from=ansible.core ansible-galaxy collection install community.crypto
 
 ansible-playbook *args:
-  uvx --from=ansible.core ansible-playbook -i metal/inventory/hosts --extra-vars "metal/@vars.secrets.yml" {{args}}
+  uvx --from=ansible.core ansible-playbook --extra-vars "metal/@vars.secrets.yml" {{args}}
 
 setup_dns_server: (ansible-playbook "metal/setup_dns_server.yml")
 

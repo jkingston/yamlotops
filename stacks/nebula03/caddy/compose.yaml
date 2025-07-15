@@ -1,0 +1,28 @@
+services:
+
+  caddy:
+    image: jkingston/caddy-with-plugins:latest
+    container_name: caddy
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      - CADDY_INGRESS_NETWORKS=caddy
+      - CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
+    networks:
+      - caddy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./caddy_conf:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+networks:
+  caddy:
+    name: caddy
+    external: true
+
+volumes:
+  caddy_data:
+  caddy_config:
