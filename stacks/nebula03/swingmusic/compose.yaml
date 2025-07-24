@@ -1,0 +1,14 @@
+services:
+  swingmusic:
+    image: ghcr.io/swingmx/swingmusic:latest
+    container_name: swingmusic
+    networks:
+      - caddy
+    volumes:  
+      - /mnt/hdd/syncthing/data/Music:/music
+      - ./config:/config
+    restart: unless-stopped
+
+networks:
+  caddy:
+    external: true

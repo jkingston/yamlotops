@@ -15,7 +15,7 @@ vod2pod.quiet.ooo {
     reverse_proxy 192.168.1.50
 }
 
-photos.quiet.ooo {
+photos.quiet.ooo, syncthing.quiet.ooo, music.quiet.ooo {
     reverse_proxy 192.168.1.52
 }
 

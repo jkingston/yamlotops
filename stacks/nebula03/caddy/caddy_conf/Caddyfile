@@ -8,3 +8,11 @@
 http://photos.quiet.ooo {
     reverse_proxy http://192.168.1.52:2283
 }
+
+http://syncthing.quiet.ooo {
+    reverse_proxy http://localhost:8384
+}
+
+http://music.quiet.ooo {
+	reverse_proxy http://swingmusic:1970
+}
